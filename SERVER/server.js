@@ -1,18 +1,16 @@
-// server.js
 const express = require("express");
 const mysql = require("mysql2");
 const dotenv = require("dotenv");
 const cors = require("cors");
 
-// Load env variables
-dotenv.config();
-
-// Initialize express app
+dotenv.config(); // Load environment variables from .env file
 const app = express();
-app.use(cors());
-app.use(express.json());
 
-// MySQL connection
+// Middleware
+app.use(cors()); // Enable CORS for cross-origin requests
+app.use(express.json()); // Parse JSON request bodies
+
+// MySQL Connection
 const db = mysql.createConnection({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
@@ -20,7 +18,7 @@ const db = mysql.createConnection({
   database: process.env.DB_NAME,
 });
 
-// Connect to DB
+// Connect to MySQL
 db.connect((err) => {
   if (err) {
     console.error("❌ MySQL connection failed:", err.message);
@@ -29,114 +27,113 @@ db.connect((err) => {
   }
 });
 
-// --------------------------- GET ROUTES ---------------------------
+// -------- API ROUTES --------
 
-// ✅ Get all vehicle factories
-app.get("/vehicle-factories", (req, res) => {
-  const sql = "SELECT * FROM vehicle_factories";
-  db.query(sql, (err, results) => {
+// Get all factories (e.g., VEHICLE FACTORY 1, VEHICLE FACTORY 2, VEHICLE FACTORY 3)
+app.get("/api/factories", (req, res) => {
+  db.query("SELECT * FROM vehicle_factories", (err, results) => {
     if (err) {
-      console.error("Error fetching vehicle factories:", err);
-      return res.status(500).send("Server Error");
+      console.error("Error fetching factories:", err);
+      return res.status(500).send("Error fetching factories");
     }
     res.json(results);
   });
 });
 
-// ✅ Get all machines by factory ID
-app.get("/machines/:factoryId", (req, res) => {
+// Get machines by factory ID
+app.get("/api/machines/:factoryId", (req, res) => {
   const { factoryId } = req.params;
-  const sql = "SELECT * FROM machines WHERE vehicle_factory_id = ?";
-  db.query(sql, [factoryId], (err, results) => {
-    if (err) {
-      console.error("Error fetching machines:", err);
-      return res.status(500).send("Server Error");
+  db.query(
+    "SELECT * FROM machines WHERE vehicle_factory_id = ?",
+    [factoryId],
+    (err, results) => {
+      if (err) {
+        console.error(`Error fetching machines for factory ${factoryId}:`, err);
+        return res.status(500).send("Error fetching machines");
+      }
+      res.json(results);
     }
-    res.json(results);
-  });
+  );
 });
 
-// ✅ Get all submitted form data (optional for viewing records)
-app.post("/api/submit", (req, res) => {
-  const { area, machine, field1, field2 } = req.body;
+// Map: Frontend API endpoint name to Backend Database table name
+// These keys (e.g., "vf1-ac-filling") must exactly match the
+// `formName` parameter sent from your frontend's axios.post requests.
+const formTableMap = {
+  // VF1 Forms
+  "vf1-ac-filling": "AC_Filling_vf1",
+  "vf1-clutch-filling": "Clutch_Process_vf1",
+  "vf1-coolant-filling": "Coolant_Process_vf1",
+  "vf1-power-steering": "Power_Steering_vf1",
+  "vf1-urea-filling": "Urea_Filling_vf1",
 
-  if (!area || !machine || !field1 || !field2) {
-    return res.status(400).json({ error: "Missing required fields" });
+  // VF2 Forms
+  "vf2-ac-filling": "AC_Filling_vf2",
+  "vf2-clutch-filling": "Clutch_Process_vf2",
+  "vf2-coolant-filling": "Coolant_Process_vf2",
+  "vf2-power-steering": "Power_Steering_vf2",
+  "vf2-urea-filling": "Urea_Filling_vf2",
+
+  // VF3 Forms
+  "vf3-ac-filling": "AC_Filling_vf3",
+  "vf3-clutch-filling": "Clutch_Process_vf3",
+  "vf3-coolant-filling": "Coolant_Process_vf3",
+  "vf3-power-steering": "Power_Steering_vf3",
+  "vf3-urea-filling": "Urea_Filling_vf3",
+  "vf3-diesel-filling": "Diesel_Filling_vf3",
+};
+
+// Generic dynamic form submission route
+// This route handles POST requests for all your forms.
+app.post("/api/:formName", (req, res) => {
+  const { formName } = req.params; // Get the formName from the URL parameter
+  const table = formTableMap[formName]; // Look up the corresponding table name
+
+  // Check if a valid table name was found for the given formName
+  if (!table) {
+    console.error(
+      `Invalid form name received: '${formName}'. No table mapping found.`
+    );
+    return res
+      .status(400)
+      .json({
+        error: "Invalid form name. No corresponding database table found.",
+      });
   }
 
-  const sql = `INSERT INTO form_data (area, machine, field1, field2) VALUES (?, ?, ?, ?)`;
-  const values = [area.name || area, machine.name || machine, field1, field2];
+  const data = req.body; // The form data sent from the frontend
+  const fields = Object.keys(data); // Extract field names (column names)
+  const values = Object.values(data); // Extract values for insertion
+  const placeholders = fields.map(() => "?").join(","); // Create placeholders for the SQL query
 
-  db.query(sql, values, (err, result) => {
+  // Construct the SQL INSERT query dynamically
+  const query = `INSERT INTO ${table} (${fields.join(
+    ", " // Join fields with comma and space
+  )}) VALUES (${placeholders})`;
+
+  // Execute the query
+  db.query(query, values, (err, result) => {
     if (err) {
-      console.error("❌ Error inserting form data:", err);
-      return res.status(500).json({ error: "Database error" });
+      console.error(
+        `Error inserting data into table '${table}' for form '${formName}':`,
+        err
+      );
+      // Provide more specific error details in development for easier debugging
+      return res.status(500).json({
+        error: "Database error during data insertion.",
+        details: err.message, // THIS IS THE KEY DETAIL FROM MYSQL
+        sql: query, // The SQL query that failed
+      });
     }
-    res.status(200).json({ message: "Data submitted successfully" });
-  });
-});
-// --------------------------- DELETE ROUTES ---------------------------
-
-// ✅ Delete a machine by ID
-app.delete("/machines/:id", (req, res) => {
-  const { id } = req.params;
-  const sql = "DELETE FROM machines WHERE id = ?";
-
-  db.query(sql, [id], (err, result) => {
-    if (err) {
-      console.error("Error deleting machine:", err);
-      return res.status(500).send("Server Error");
-    }
-
-    if (result.affectedRows === 0) {
-      return res.status(404).send("❌ Machine not found");
-    }
-
-    res.send("🗑️ Machine deleted successfully");
-  });
-});
-
-// ✅ Delete a vehicle factory by ID (if needed)
-app.delete("/vehicle-factories/:id", (req, res) => {
-  const { id } = req.params;
-  const sql = "DELETE FROM vehicle_factories WHERE id = ?";
-
-  db.query(sql, [id], (err, result) => {
-    if (err) {
-      console.error("Error deleting factory:", err);
-      return res.status(500).send("Server Error");
-    }
-
-    if (result.affectedRows === 0) {
-      return res.status(404).send("❌ Vehicle factory not found");
-    }
-
-    res.send("🗑️ Vehicle factory deleted successfully");
+    console.log(
+      `✅ Data successfully inserted into ${table}. Insert ID: ${result.insertId}`
+    );
+    res.json({ message: "✅ Data submitted successfully" });
   });
 });
 
-// ✅ Delete form submission by ID (optional)
-app.delete("/form-data/:id", (req, res) => {
-  const { id } = req.params;
-  const sql = "DELETE FROM form_data WHERE id = ?";
-
-  db.query(sql, [id], (err, result) => {
-    if (err) {
-      console.error("Error deleting form entry:", err);
-      return res.status(500).send("Server Error");
-    }
-
-    if (result.affectedRows === 0) {
-      return res.status(404).send("❌ Form entry not found");
-    }
-
-    res.send("🗑️ Form entry deleted successfully");
-  });
-});
-
-// --------------------------- START SERVER ---------------------------
-const PORT = process.env.PORT || 5000;
-
+// Start the server
+const PORT = process.env.PORT || 5000; // Use port from .env or default to 5000
 app.listen(PORT, () => {
   console.log(`🚀 Server running at http://localhost:${PORT}`);
 });

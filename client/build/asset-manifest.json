@@ -1,0 +1,16 @@
+{
+  "files": {
+    "main.css": "/static/css/main.05dffddd.css",
+    "main.js": "/static/js/main.e2fd42ba.js",
+    "static/media/tata_it_logo.png": "/static/media/tata_it_logo.07400b974f063e231cb0.png",
+    "static/media/Tata-logo.png": "/static/media/Tata-logo.f268ce8c172775946b66.png",
+    "static/media/tata_quote_logo.png": "/static/media/tata_quote_logo.2541ff33b83d3b9107bb.png",
+    "index.html": "/index.html",
+    "main.05dffddd.css.map": "/static/css/main.05dffddd.css.map",
+    "main.e2fd42ba.js.map": "/static/js/main.e2fd42ba.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.05dffddd.css",
+    "static/js/main.e2fd42ba.js"
+  ]
+}

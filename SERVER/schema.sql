@@ -198,3 +198,7 @@ CREATE TABLE Diesel_Filling_vf3 (
 
 
 SHOW TABLES;
+
+;
+
+FLUSH PRIVILEGES;

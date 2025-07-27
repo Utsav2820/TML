@@ -27,7 +27,7 @@ const Dashboard = () => {
   // Fetch factories on component mount
   useEffect(() => {
     axios
-      .get("http://localhost:5000/api/factories")
+      .get("http://192.168.29.245:5000/api/factories")
       .then((res) => {
         setFactories(res.data);
       })

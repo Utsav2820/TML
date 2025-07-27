@@ -94,11 +94,9 @@ app.post("/api/:formName", (req, res) => {
     console.error(
       `Invalid form name received: '${formName}'. No table mapping found.`
     );
-    return res
-      .status(400)
-      .json({
-        error: "Invalid form name. No corresponding database table found.",
-      });
+    return res.status(400).json({
+      error: "Invalid form name. No corresponding database table found.",
+    });
   }
 
   const data = req.body; // The form data sent from the frontend

@@ -1,0 +1,24 @@
+{
+  "name": "tml",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "install:global": "npm install -g pm2 && npm i -g serve",
+    "start:frontend": "cd client && npm i && npm run build && pm2 serve build 3000 --spa -f --name TML-client",
+    "start:backend": "cd SERVER && npm i && pm2 start server.js --name TML-SERVER",
+    "start": "npm run start:frontend && npm run start:backend",
+    "start:all": "npm run install:global && npm run start:frontend && npm run start:backend"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Utsav2820/TML.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Utsav2820/TML/issues"
+  },
+  "homepage": "https://github.com/Utsav2820/TML#readme",
+  "description": ""
+}
